@@ -1,282 +1,218 @@
 # xmpauto
 
-اسکریپت‌های آماده برای نصب و راه‌اندازی **XMPlus** و تانل **6to4/GRE6** روی سرورهای لینوکس (ایران و خارج).
+Ready-to-use scripts for **XMPlus** installation and **6to4/GRE6** tunnel setup on Linux servers (Iran and foreign).
 
 ---
 
-## فهرست
+## Table of Contents
 
-- [معرفی](#معرفی)
-- [ساختار ریپو](#ساختار-ریپو)
-- [۱. XMPlus Setup](#۱-xmplus-setup)
-- [۲. تانل 6to4 + GRE6](#۲-تانل-6to4--gre6)
-- [عیب‌یابی](#عیب‌یابی)
-- [خلاصه دستورات](#خلاصه-دستورات)
-- [ریپو و لایسنس](#ریپو-و-لایسنس)
-
----
-
-## معرفی
-
-این ریپو دو اسکریپت اصلی دارد:
-
-| اسکریپت | کاربرد |
-|---------|--------|
-| **setup.sh** | نصب XMPlus و ساخت خودکار کانفیگ با ApiHost، ApiKey و چند NodeID |
-| **6to4-tunnel.sh** | ایجاد تانل 6to4 و GRE6 بین سرور ایران و خارج (بدون IPv6 واقعی) |
-
-هر دو اسکریپت با یک دستور از GitHub قابل اجرا هستند و نیازی به کلون کردن ریپو نیست.
+- [Introduction](#introduction)
+- [Repository Structure](#repository-structure)
+- [1. XMPlus Setup](#1-xmplus-setup)
+- [2. 6to4 + GRE6 Tunnel](#2-6to4--gre6-tunnel)
+- [Troubleshooting](#troubleshooting)
+- [Command Summary](#command-summary)
+- [License](#license)
 
 ---
 
-## ساختار ریپو
+## Introduction
+
+This repository contains two main scripts:
+
+| Script | Description |
+|--------|-------------|
+| **setup.sh** | Install XMPlus and auto-generate config with ApiHost, ApiKey, and multiple NodeIDs |
+| **6to4-tunnel.sh** | Interactive setup for 6to4 and GRE6 tunnels between Iran and foreign servers (no real IPv6 needed) |
+
+Both scripts can be run directly from GitHub without cloning.
+
+---
+
+## Repository Structure
 
 ```
 xmpauto/
-├── README.md          # همین فایل
-├── setup.sh            # اسکریپت نصب XMPlus و تولید کانفیگ
-├── 6to4-tunnel.sh      # اسکریپت تانل 6to4 + GRE6
-├── config.yml          # نمونه کانفیگ XMPlus (مرجع)
-├── install.txt         # لینک نصب رسمی XMPlus
-└── 6t4.md              # مرجع متنی آموزش 6to4
+├── README.md           # This file
+├── setup.sh            # XMPlus install and config generator
+├── 6to4-tunnel.sh      # Interactive 6to4 + GRE6 tunnel setup
+├── config.yml          # Sample XMPlus config (reference)
+├── install.txt         # Official XMPlus install link
+└── 6t4.md              # 6to4 reference documentation
 ```
 
 ---
 
-# ۱. XMPlus Setup
+# 1. XMPlus Setup
 
-اسکریپت نصب XMPlus و تولید خودکار کانفیگ با ApiHost، ApiKey و NodeID های دلخواه.
+Install XMPlus and auto-generate config with ApiHost, ApiKey, and NodeIDs.
 
-## پیش‌نیاز
+## Prerequisites
 
-- سرور لینوکس: **CentOS 7+**، **Ubuntu 16+** یا **Debian 8+**
-- دسترسی **root** یا **sudo**
+- Linux: **CentOS 7+**, **Ubuntu 16+**, or **Debian 8+**
+- **root** or **sudo** access
 
-## نصب و اجرا (یک‌خطی)
+## Run (one-liner)
 
-**یک نود:**
+**Single node:**
 ```bash
 sudo bash <(curl -Ls https://raw.githubusercontent.com/hosseinpv1379/xmpauto/main/setup.sh) --apihost "https://www.xyz.com" --apikey "YOUR_KEY" --nodes 1
 ```
 
-**چند نود:**
+**Multiple nodes:**
 ```bash
 sudo bash <(curl -Ls https://raw.githubusercontent.com/hosseinpv1379/xmpauto/main/setup.sh) --apihost "https://www.xyz.com" --apikey "YOUR_KEY" --nodes 1 2 3
 ```
 
-**فقط کانفیگ (بدون نصب مجدد):**
+**Config only (no install):**
 ```bash
 sudo bash <(curl -Ls https://raw.githubusercontent.com/hosseinpv1379/xmpauto/main/setup.sh) --apihost "https://www.xyz.com" --apikey "YOUR_KEY" --nodes 1 2 --config-only
 ```
 
-## پارامترها
+## Parameters
 
-| پارامتر | توضیح |
-|---------|-------|
-| `--apihost` | آدرس API پنل (ثابت برای همه نودها) |
-| `--apikey` | کلید API (ثابت برای همه نودها) |
-| `--nodes` | لیست Node ID ها (برای هر کدوم یک بلوک کانفیگ ساخته میشه) |
-| `--config-only` | فقط کانفیگ بساز، نصب نکن |
+| Parameter | Description |
+|-----------|-------------|
+| `--apihost` | API panel URL (same for all nodes) |
+| `--apikey` | API key (same for all nodes) |
+| `--nodes` | List of Node IDs (creates a config block per node) |
+| `--config-only` | Generate config only, skip install |
 
-## خروجی
+## Output
 
-- نصب XMPlus در `/usr/local/XMPlus/`
-- کانفیگ در `/etc/XMPlus/config.yml`
-- سرویس systemd: **XMPlus**
+- XMPlus installed in `/usr/local/XMPlus/`
+- Config in `/etc/XMPlus/config.yml`
+- systemd service: **XMPlus**
 
-## دستورات مدیریت XMPlus (بعد از نصب)
+## XMPlus Management Commands
 
-| دستور | کار |
-|-------|-----|
-| `XMPlus` | نمایش منو |
-| `XMPlus start` | شروع سرویس |
-| `XMPlus stop` | توقف سرویس |
-| `XMPlus restart` | ریستارت سرویس |
-| `XMPlus status` | وضعیت سرویس |
-| `XMPlus log` | مشاهده لاگ |
-| `XMPlus config` | نمایش محتوای کانفیگ |
-| `XMPlus update` | آپدیت XMPlus |
-
----
-
-# ۲. تانل 6to4 + GRE6
-
-اسکریپت ایجاد تانل **6to4** و **GRE6** بین سرور ایران و سرور خارج، **بدون نیاز به IPv6 واقعی**. پشتیبانی از **چند سرور ایران** به **یک سرور خارج**.
-
-## پیش‌نیاز
-
-- دو سرور: یکی در ایران، یکی خارج
-- آیپی **IPv4 پابلیک** هر دو سرور
-- دسترسی **root** یا **sudo**
-
-## آموزش گام‌به‌گام
-
-### سناریو: ۲ سرور ایران + ۱ سرور خارج
-
-فرض کن:
-- **سرور ایران ۱:** آیپی `1.1.1.1`
-- **سرور ایران ۲:** آیپی `2.2.2.2`
-- **سرور خارج:** آیپی `9.9.9.9`
+| Command | Description |
+|---------|-------------|
+| `XMPlus` | Show menu |
+| `XMPlus start` | Start service |
+| `XMPlus stop` | Stop service |
+| `XMPlus restart` | Restart service |
+| `XMPlus status` | Service status |
+| `XMPlus log` | View logs |
+| `XMPlus config` | Show config |
 
 ---
 
-### گام ۱: سرور ایران ۱
+# 2. 6to4 + GRE6 Tunnel
 
-به سرور اول ایران وصل شو و اجرا کن:
+**Interactive script** for 6to4 and GRE6 tunnels between Iran and foreign servers, **without real IPv6**. Supports **multiple Iran servers** to **one foreign server**.
+
+## Prerequisites
+
+- Two servers: one in Iran, one abroad
+- Public **IPv4** on both
+- **root** or **sudo** access
+
+## Run
 
 ```bash
-sudo bash <(curl -Ls https://raw.githubusercontent.com/hosseinpv1379/xmpauto/main/6to4-tunnel.sh) iran --kharej-ip 9.9.9.9 --iran-ip 1.1.1.1 --tunnel-id 1
+sudo bash <(curl -Ls https://raw.githubusercontent.com/hosseinpv1379/xmpauto/main/6to4-tunnel.sh)
 ```
 
-- `--kharej-ip`: آیپی سرور خارج  
-- `--iran-ip`: آیپی همین سرور ایران  
-- `--tunnel-id`: شماره تانل (برای سرور اول = 1)
+The script shows a menu and asks for inputs interactively. No arguments needed.
 
----
+## Menu Options
 
-### گام ۲: سرور ایران ۲
+| Option | Description |
+|--------|-------------|
+| 1 | Setup Iran server (tunnel endpoint) |
+| 2 | Setup Foreign server (tunnel endpoint) |
+| 3 | Remove tunnel |
+| 4 | Show tunnel status |
+| 5 | Exit |
 
-به سرور دوم ایران وصل شو و اجرا کن:
+## Usage Flow
 
-```bash
-sudo bash <(curl -Ls https://raw.githubusercontent.com/hosseinpv1379/xmpauto/main/6to4-tunnel.sh) iran --kharej-ip 9.9.9.9 --iran-ip 2.2.2.2 --tunnel-id 2
-```
+### 1. Iran Server
 
-همین پارامترها، فقط `--iran-ip` و `--tunnel-id` عوض میشه.
+1. Run the script.
+2. Select option **1** (Setup Iran server).
+3. Enter:
+   - Iran server public IPv4
+   - Foreign server public IPv4
+   - Tunnel ID (1 for first Iran, 2 for second, etc.)
+   - IPv6 base prefix (optional, default: fde8:b030:25cf)
+4. Confirm to create the tunnel.
 
----
+### 2. Foreign Server
 
-### گام ۳: سرور خارج (برای هر سرور ایران یکبار)
+1. Run the script.
+2. Select option **2** (Setup Foreign server).
+3. Enter:
+   - Foreign server public IPv4
+   - Iran server public IPv4
+   - Tunnel ID (must match the Iran server)
+   - IPv6 base prefix (optional)
+4. Confirm to create the tunnel.
 
-به سرور خارج وصل شو. برای **هر** سرور ایران یک دستور جدا اجرا کن:
+### 3. Testing
 
-**تانل مربوط به سرور ایران ۱:**
-```bash
-sudo bash <(curl -Ls https://raw.githubusercontent.com/hosseinpv1379/xmpauto/main/6to4-tunnel.sh) kharej --iran-ip 1.1.1.1 --kharej-ip 9.9.9.9 --tunnel-id 1
-```
-
-**تانل مربوط به سرور ایران ۲:**
-```bash
-sudo bash <(curl -Ls https://raw.githubusercontent.com/hosseinpv1379/xmpauto/main/6to4-tunnel.sh) kharej --iran-ip 2.2.2.2 --kharej-ip 9.9.9.9 --tunnel-id 2
-```
-
----
-
-### گام ۴: تست تانل
-
-**از سرور ایران ۱:**
+**From Iran server:**
 ```bash
 ping6 fde8:b030:25cf:1::2
 ping 172.20.20.2
 ```
 
-**از سرور ایران ۲:**
-```bash
-ping6 fde8:b030:25cf:2::2
-ping 172.20.21.2
-```
-
-**از سرور خارج:**
+**From Foreign server:**
 ```bash
 ping6 fde8:b030:25cf:1::1
 ping 172.20.20.1
-
-ping6 fde8:b030:25cf:2::1
-ping 172.20.21.1
 ```
 
-اگر پینگ جواب داد، تانل درست برقرار شده.
+## Generated Addresses (Default)
 
----
-
-## آدرس‌های تولیدشده (پیش‌فرض)
-
-| تانل | IPv6 ایران | IPv6 خارج | IPv4 لوکال ایران | IPv4 لوکال خارج |
-|------|------------|-----------|-----------------|-----------------|
+| Tunnel | Iran IPv6 | Foreign IPv6 | Iran Local IPv4 | Foreign Local IPv4 |
+|--------|-----------|--------------|-----------------|---------------------|
 | 1 | fde8:b030:25cf:1::1 | fde8:b030:25cf:1::2 | 172.20.20.1 | 172.20.20.2 |
 | 2 | fde8:b030:25cf:2::1 | fde8:b030:25cf:2::2 | 172.20.21.1 | 172.20.21.2 |
 | 3 | fde8:b030:25cf:3::1 | fde8:b030:25cf:3::2 | 172.20.22.1 | 172.20.22.2 |
 
-## پارامتر اختیاری: تغییر پایه IPv6
+## Persistence After Reboot
 
-اگر بخوای از رنج IPv6 دیگری استفاده کنی:
-
-```bash
-sudo bash <(curl -Ls .../6to4-tunnel.sh) iran --kharej-ip 9.9.9.9 --iran-ip 1.1.1.1 --tunnel-id 1 --ipv6-base "fde8:1234:abcd"
-```
-
-آدرس‌ها به صورت `fde8:1234:abcd:1::1` و `fde8:1234:abcd:1::2` برای تانل ۱، و `fde8:1234:abcd:2::1` و `...::2` برای تانل ۲ ساخته میشن.
-
-## دستورات دیگر
-
-**نمایش وضعیت تانل‌ها:**
-```bash
-sudo bash <(curl -Ls https://raw.githubusercontent.com/hosseinpv1379/xmpauto/main/6to4-tunnel.sh) status
-```
-
-**حذف تانل:**
-
-روی سرور ایران:
-```bash
-sudo bash <(curl -Ls https://raw.githubusercontent.com/hosseinpv1379/xmpauto/main/6to4-tunnel.sh) remove --tunnel-id 1 --role iran
-```
-
-روی سرور خارج:
-```bash
-sudo bash <(curl -Ls https://raw.githubusercontent.com/hosseinpv1379/xmpauto/main/6to4-tunnel.sh) remove --tunnel-id 1 --role kharej
-```
-
-**راهنمای داخل اسکریپت:**
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/hosseinpv1379/xmpauto/main/6to4-tunnel.sh) --help
-```
-
-## ماندگاری بعد از ریبوت
-
-تنظیمات تانل در **`/etc/rc.local`** ذخیره میشه و بعد از ریستارت سرور خودکار اجرا میشه. برای غیرفعال کردن، از دستور **remove** استفاده کن یا محتوای مربوط به تانل را از `/etc/rc.local` حذف کن.
+Tunnel config is saved in **`/etc/rc.local`** and runs automatically after reboot.
 
 ---
 
-## عیب‌یابی
+## Troubleshooting
 
 ### XMPlus
 
-| مشکل | راه‌حل |
-|------|--------|
-| نصب نشد / خطای دانلود | اتصال به اینترنت و دسترسی به GitHub را چک کن؛ در صورت فیلتر از پراکسی استفاده کن. |
-| سرویس استارت نمیشه | `XMPlus log` را ببین؛ مسیر کانفیگ `/etc/XMPlus/config.yml` و دسترسی فایل را چک کن. |
-| کانفیگ عوض نمیشه | با `--config-only` دوباره کانفیگ بساز؛ بعد `XMPlus restart` بزن. |
+| Issue | Solution |
+|-------|----------|
+| Install fails / download error | Check internet and GitHub access; use proxy if blocked. |
+| Service won't start | Run `XMPlus log`; check `/etc/XMPlus/config.yml` and permissions. |
+| Config not updating | Rebuild config with `--config-only`, then `XMPlus restart`. |
 
-### تانل 6to4
+### 6to4 Tunnel
 
-| مشکل | راه‌حل |
-|------|--------|
-| پینگ جواب نمیده | ترتیب اجرا را رعایت کن: اول هر دو طرف تانل 6to4 و GRE6 را بزن، بعد تست کن. |
-| بعد از ریبوت تانل نیست | وجود و اجرایی بودن `/etc/rc.local` را چک کن؛ لاگ بوت را ببین. |
-| خطای «File exists» یا اینترفیس تکراری | قبلاً تانل با همین `tunnel-id` ساخته شده؛ اول با `remove` حذف کن، بعد دوباره اجرا کن. |
-| iptables خطا میده | روی سرور ایران، در صورت تداخل قوانین، قبل از اجرای مجدد اسکریپت قوانین NAT را با `iptables -t nat -F` خالی نکن مگر اینکه بدونی چی میکنی؛ ترجیحاً فقط از دستور **remove** استفاده کن. |
-
----
-
-## خلاصه دستورات
-
-| کار | دستور |
-|-----|--------|
-| نصب XMPlus (یک نود) | `sudo bash <(curl -Ls .../setup.sh) --apihost "URL" --apikey "KEY" --nodes 1` |
-| نصب XMPlus (چند نود) | `... --nodes 1 2 3` |
-| فقط کانفیگ XMPlus | `... --config-only --nodes 1 2` |
-| تانل روی سرور ایران | `sudo bash <(curl -Ls .../6to4-tunnel.sh) iran --kharej-ip X --iran-ip Y --tunnel-id N` |
-| تانل روی سرور خارج | `sudo bash <(curl -Ls .../6to4-tunnel.sh) kharej --iran-ip Y --kharej-ip X --tunnel-id N` |
-| وضعیت تانل‌ها | `sudo bash <(curl -Ls .../6to4-tunnel.sh) status` |
-| حذف تانل | `sudo bash <(curl -Ls .../6to4-tunnel.sh) remove --tunnel-id N --role iran` یا `kharej` |
-
-**آدرس ریپو:**  
-https://github.com/hosseinpv1379/xmpauto
+| Issue | Solution |
+|-------|----------|
+| Ping fails | Run tunnel setup on both sides, then test again. |
+| Tunnel gone after reboot | Verify `/etc/rc.local` exists and is executable; check boot logs. |
+| "File exists" or duplicate interface | Remove the tunnel first (option 3), then run setup again. |
 
 ---
 
-## ریپو و لایسنس
+## Command Summary
 
-- **ریپو:** [github.com/hosseinpv1379/xmpauto](https://github.com/hosseinpv1379/xmpauto)
-- این اسکریپت‌ها فقط برای **یادگیری و استفاده شخصی** هستند. استفاده در محیط‌های حساس بدون تست و مسئولیت خودت توصیه نمیشه.
-- XMPlus پروژه جداگانه‌ای است؛ برای نصب از اسکریپت رسمی آن‌ها استفاده می‌شود و لایسنس و قوانین مربوط به خود XMPlus است.
+| Task | Command |
+|------|---------|
+| XMPlus install (single node) | `sudo bash <(curl -Ls .../setup.sh) --apihost "URL" --apikey "KEY" --nodes 1` |
+| XMPlus install (multiple nodes) | `... --nodes 1 2 3` |
+| XMPlus config only | `... --config-only --nodes 1 2` |
+| 6to4 tunnel (interactive) | `sudo bash <(curl -Ls .../6to4-tunnel.sh)` |
+
+**Repository:** https://github.com/hosseinpv1379/xmpauto
+
+---
+
+## License
+
+- **Repository:** [github.com/hosseinpv1379/xmpauto](https://github.com/hosseinpv1379/xmpauto)
+- These scripts are for **learning and personal use**.
+- XMPlus is a separate project; the script uses its official install and licensing.
