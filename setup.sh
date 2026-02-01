@@ -133,11 +133,12 @@ OUTPUT="$CONFIG_HEAD"
 
 # برای هر Node یک بلوک اضافه کن
 for NODE_ID in "${NODES[@]}"; do
-    BLOCK=$(echo "$NODE_TEMPLATE" | \
+    BLOCK=$(printf "%s" "$NODE_TEMPLATE" | \
         sed "s|APIHOST_PLACEHOLDER|$APIHOST|g" | \
         sed "s|APIKEY_PLACEHOLDER|$APIKEY|g" | \
         sed "s|NODEID_PLACEHOLDER|$NODE_ID|g")
-    OUTPUT="$OUTPUT$BLOCK"
+    OUTPUT="$OUTPUT$BLOCK
+"
 done
 
 # ذخیره کانفیگ
