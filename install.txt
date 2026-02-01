@@ -1,0 +1,4 @@
+Onclick Install XMPlus
+bash <(curl -Ls https://raw.githubusercontent.com/XMPlusDev/XMPlus/scripts/instal
+
+
