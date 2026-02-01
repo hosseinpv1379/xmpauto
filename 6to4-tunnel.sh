@@ -145,11 +145,6 @@ show_status() {
     echo -e "${YELLOW}اینترفیس‌ها:${NC}"
     ip addr show 2>/dev/null | grep -E "6to4|GRE6" -A 2 || echo "  هیچ اینترفیس تانل یافت نشد"
     echo ""
-    echo -e "${YELLOW}IP Forward:${NC}"
-    cat /proc/sys/net/ipv4/ip_forward
-    echo ""
-    echo -e "${YELLOW}iptables NAT:${NC}"
-    iptables -t nat -L -n 2>/dev/null | head -20 || echo "  دسترسی به iptables نیست"
     exit 0
 }
 
@@ -165,10 +160,6 @@ remove_tunnel() {
     if [[ "$role" == "iran" ]]; then
         ip tunnel del ${TUNNEL_6TO4_NAME}_KH 2>/dev/null || true
         ip -6 tunnel del ${TUNNEL_GRE6_NAME}_KH 2>/dev/null || true
-        
-        # پاک کردن iptables
-        iptables -t nat -F 2>/dev/null || true
-        iptables -t nat -X 2>/dev/null || true
         
     elif [[ "$role" == "kharej" ]]; then
         ip tunnel del ${TUNNEL_6TO4_NAME}_IR 2>/dev/null || true
@@ -199,33 +190,23 @@ setup_iran() {
     echo -e "IPv4 لوکال خارج: ${YELLOW}${KHAREJ_LOCAL_IPV4}${NC}"
     echo ""
     
-    # Step 1: تانل 6to4
-    echo -e "${YELLOW}[1/4] ایجاد تانل 6to4...${NC}"
+    # Step 1: تانل 6to4 (با /128 و روت صریح تا تانل‌های بعدی درست کار کنن)
+    echo -e "${YELLOW}[1/3] ایجاد تانل 6to4...${NC}"
     ip tunnel add ${TUNNEL_6TO4_NAME}_KH mode sit remote ${KHAREJ_IPV4} local ${IRAN_IPV4}
-    ip -6 addr add ${IRAN_IPV6}/64 dev ${TUNNEL_6TO4_NAME}_KH
+    ip -6 addr add ${IRAN_IPV6}/128 dev ${TUNNEL_6TO4_NAME}_KH
+    ip -6 route add ${KHAREJ_IPV6}/128 dev ${TUNNEL_6TO4_NAME}_KH
     ip link set ${TUNNEL_6TO4_NAME}_KH mtu 1480
     ip link set ${TUNNEL_6TO4_NAME}_KH up
     
     # Step 2: تانل GRE6
-    echo -e "${YELLOW}[2/4] ایجاد تانل GRE6...${NC}"
+    echo -e "${YELLOW}[2/3] ایجاد تانل GRE6...${NC}"
     ip -6 tunnel add ${TUNNEL_GRE6_NAME}_KH mode ip6gre remote ${KHAREJ_IPV6} local ${IRAN_IPV6}
     ip addr add ${IRAN_LOCAL_IPV4}/30 dev ${TUNNEL_GRE6_NAME}_KH
     ip link set ${TUNNEL_GRE6_NAME}_KH mtu 1436
     ip link set ${TUNNEL_GRE6_NAME}_KH up
     
-    # Step 3: IP Forward و iptables
-    echo -e "${YELLOW}[3/4] تنظیم IP Forward و iptables...${NC}"
-    sysctl -w net.ipv4.ip_forward=1
-    
-    # فقط اگر اولین تانل باشه، قوانین پایه رو اضافه کن
-    if [[ $TUNNEL_ID -eq 1 ]]; then
-        iptables -t nat -A PREROUTING -p tcp --dport 22 -j DNAT --to-destination ${IRAN_LOCAL_IPV4}
-    fi
-    iptables -t nat -A PREROUTING -j DNAT --to-destination ${KHAREJ_LOCAL_IPV4}
-    iptables -t nat -A POSTROUTING -j MASQUERADE
-    
-    # Step 4: ذخیره در rc.local
-    echo -e "${YELLOW}[4/4] ذخیره تنظیمات برای بوت...${NC}"
+    # Step 3: ذخیره در rc.local
+    echo -e "${YELLOW}[3/3] ذخیره تنظیمات برای بوت...${NC}"
     
     if [[ ! -f /etc/rc.local ]]; then
         echo '#!/bin/bash' > /etc/rc.local
@@ -239,7 +220,8 @@ setup_iran() {
 
 # Tunnel ${TUNNEL_ID} - Iran to Kharej
 ip tunnel add ${TUNNEL_6TO4_NAME}_KH mode sit remote ${KHAREJ_IPV4} local ${IRAN_IPV4}
-ip -6 addr add ${IRAN_IPV6}/64 dev ${TUNNEL_6TO4_NAME}_KH
+ip -6 addr add ${IRAN_IPV6}/128 dev ${TUNNEL_6TO4_NAME}_KH
+ip -6 route add ${KHAREJ_IPV6}/128 dev ${TUNNEL_6TO4_NAME}_KH
 ip link set ${TUNNEL_6TO4_NAME}_KH mtu 1480
 ip link set ${TUNNEL_6TO4_NAME}_KH up
 
@@ -247,10 +229,6 @@ ip -6 tunnel add ${TUNNEL_GRE6_NAME}_KH mode ip6gre remote ${KHAREJ_IPV6} local 
 ip addr add ${IRAN_LOCAL_IPV4}/30 dev ${TUNNEL_GRE6_NAME}_KH
 ip link set ${TUNNEL_GRE6_NAME}_KH mtu 1436
 ip link set ${TUNNEL_GRE6_NAME}_KH up
-
-sysctl -w net.ipv4.ip_forward=1
-iptables -t nat -A PREROUTING -j DNAT --to-destination ${KHAREJ_LOCAL_IPV4}
-iptables -t nat -A POSTROUTING -j MASQUERADE
 
 EOF
     
@@ -279,10 +257,11 @@ setup_kharej() {
     echo -e "IPv4 لوکال ایران: ${YELLOW}${IRAN_LOCAL_IPV4}${NC}"
     echo ""
     
-    # Step 1: تانل 6to4
+    # Step 1: تانل 6to4 (با /128 و روت صریح تا تانل‌های بعدی درست کار کنن)
     echo -e "${YELLOW}[1/3] ایجاد تانل 6to4...${NC}"
     ip tunnel add ${TUNNEL_6TO4_NAME}_IR mode sit remote ${IRAN_IPV4} local ${KHAREJ_IPV4}
-    ip -6 addr add ${KHAREJ_IPV6}/64 dev ${TUNNEL_6TO4_NAME}_IR
+    ip -6 addr add ${KHAREJ_IPV6}/128 dev ${TUNNEL_6TO4_NAME}_IR
+    ip -6 route add ${IRAN_IPV6}/128 dev ${TUNNEL_6TO4_NAME}_IR
     ip link set ${TUNNEL_6TO4_NAME}_IR mtu 1480
     ip link set ${TUNNEL_6TO4_NAME}_IR up
     
@@ -308,7 +287,8 @@ setup_kharej() {
 
 # Tunnel ${TUNNEL_ID} - Kharej to Iran
 ip tunnel add ${TUNNEL_6TO4_NAME}_IR mode sit remote ${IRAN_IPV4} local ${KHAREJ_IPV4}
-ip -6 addr add ${KHAREJ_IPV6}/64 dev ${TUNNEL_6TO4_NAME}_IR
+ip -6 addr add ${KHAREJ_IPV6}/128 dev ${TUNNEL_6TO4_NAME}_IR
+ip -6 route add ${IRAN_IPV6}/128 dev ${TUNNEL_6TO4_NAME}_IR
 ip link set ${TUNNEL_6TO4_NAME}_IR mtu 1480
 ip link set ${TUNNEL_6TO4_NAME}_IR up
 
